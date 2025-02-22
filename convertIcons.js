@@ -10,7 +10,8 @@ if (!fs.existsSync(OUTPUT_FOLDER)) {
     fs.mkdirSync(OUTPUT_FOLDER, { recursive: true });
 }
 
-const sizes = [16, 32, 48, 64, 128, 256, 512];
+// Only generate these sizes
+const sizes = [48, 64, 128, 256, 512];
 
 async function processImages() {
     const imagesData = {};
@@ -44,8 +45,8 @@ async function updateReadme() {
 
     Object.entries(imagesData).forEach(([baseName, files]) => {
         markdownContent += `## ${baseName}\n\n`;
-        markdownContent += "| 16px | 32px | 48px | 64px | 128px | 256px | 512px |\n";
-        markdownContent += "|------|------|------|------|-------|-------|-------|\n";
+        markdownContent += "| 48px | 64px | 128px | 256px | 512px |\n";
+        markdownContent += "|------|------|-------|-------|-------|\n";
         markdownContent += `| ${files.map(f => `![${f}](./resized-icons/${f})`).join(" | ")} |\n\n`;
     });
 
