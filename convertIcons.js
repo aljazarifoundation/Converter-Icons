@@ -1,37 +1,65 @@
 const fs = require("fs");
 const path = require("path");
-const Jimp = require("jimp").default || require("jimp"); // ✅ FIXED
+const Jimp = require("jimp");
 
-const INPUT_FOLDER = "E:/AljazariTemplate/generator-icon/icons";
-const OUTPUT_FOLDER = "E:/AljazariTemplate/generator-icon/resized-icons";
-const SIZES = [16, 32, 48, 64, 128, 256, 512];
+const INPUT_FOLDER = "E:/AljazariTemplate/converter-icon/icons";
+const OUTPUT_FOLDER = "E:/AljazariTemplate/converter-icon/iconsresults";
+const README_FILE = "E:/AljazariTemplate/converter-icon/README.md";
+const SIZES = [16, 32, 64, 128, 256];
 
 if (!fs.existsSync(OUTPUT_FOLDER)) {
     fs.mkdirSync(OUTPUT_FOLDER, { recursive: true });
 }
 
-const pngFiles = fs.readdirSync(INPUT_FOLDER).filter(file => file.endsWith(".png"));
+async function convertImage(file) {
+    if (!file.endsWith(".png")) return;
+    
+    const inputPath = path.join(INPUT_FOLDER, file);
+    const baseName = path.basename(file, ".png");
 
-if (pngFiles.length === 0) {
-    console.error("❌ No PNG files found in", INPUT_FOLDER);
-    process.exit(1);
+    try {
+        console.log(`🔄 Processing: ${inputPath}`);
+        const image = await Jimp.read(inputPath);
+
+        for (const size of SIZES) {
+            const outputPath = path.join(OUTPUT_FOLDER, `${baseName}_${size}.png`);
+            await image.resize(size, size).writeAsync(outputPath);
+            console.log(`✅ Created: ${outputPath}`);
+        }
+    } catch (err) {
+        console.error(`❌ Error processing ${file}:`, err);
+    }
 }
 
-(async () => {
-    for (const file of pngFiles) {
-        const imageName = path.basename(file, ".png");
-        const inputPath = path.join(INPUT_FOLDER, file);
+// Proses semua gambar
+fs.readdirSync(INPUT_FOLDER).forEach(convertImage);
 
-        try {
-            const image = await Jimp.read(inputPath); // ✅ FIXED
-            for (const size of SIZES) {
-                const outputPath = path.join(OUTPUT_FOLDER, `${imageName}_${size}x${size}.png`);
-                await image.clone().resize(size, size).writeAsync(outputPath);
-                console.log(`✅ Generated: ${outputPath}`);
+setTimeout(() => {
+    const icons = fs.readdirSync(OUTPUT_FOLDER).filter(file => file.endsWith(".png"));
+
+    // Buat struktur grouping
+    const groupedIcons = {};
+    icons.forEach(file => {
+        const match = file.match(/^(.+?)_\d+\.png$/);
+        if (match) {
+            const baseName = match[1];
+            if (!groupedIcons[baseName]) {
+                groupedIcons[baseName] = [];
             }
-        } catch (err) {
-            console.error(`❌ Error processing ${file}:`, err);
+            groupedIcons[baseName].push(file);
         }
-    }
-    console.log(`🎉 All images resized and saved in "${OUTPUT_FOLDER}"`);
-})();
+    });
+
+    // Buat isi README.md
+    let markdownContent = `# Icon List\n\n`;
+    Object.keys(groupedIcons).forEach(group => {
+        markdownContent += `## ${group}.png\n`;
+        groupedIcons[group].forEach(icon => {
+            markdownContent += `- ![${icon}](./iconsresults/${icon}) \`${icon}\`\n`;
+        });
+        markdownContent += "\n";
+    });
+
+    fs.writeFileSync(README_FILE, markdownContent);
+    console.log(`🎉 README.md updated successfully!`);
+}, 3000);
